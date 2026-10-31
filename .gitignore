@@ -1,0 +1,19 @@
+# Compiled OS files
+*.o
+*.elf
+*.bin
+*.iso
+
+# Debug and temporary files
+*.log
+*.tmp
+
+# Editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
