@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "task.h"
 #include "interrupt.h"
+#include "memory.h"
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
@@ -157,6 +158,12 @@ static void execute(const char *cmd)
     else if (equals(cmd, "schedule")) {
         task_run_fcfs();
     }
+    else if (equals(cmd, "meminfo")) {
+    memory_print_stats();
+}
+else if (equals(cmd, "memtest")) {
+    memory_test();
+}
     else if (equals(cmd, "halt")) {
         print("\nSysCore halted.");
         for (;;) {
@@ -178,7 +185,8 @@ void kernel_main(void)
     print("\nType help to see commands.");
 
     task_init();
-    interrupts_init();
+  /*  interrupts_init();*/
+    memory_init();
     prompt();
 
     while (1) {
