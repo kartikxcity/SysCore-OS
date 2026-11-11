@@ -16,21 +16,41 @@ static int col = 0;
 static uint8_t color = 0x0F;
 
 void print(const char *s);
+static void scroll_screen(void)
+{
+    for (int r = 0; r < VGA_HEIGHT - 1; r++) {
+        for (int c = 0; c < VGA_WIDTH; c++) {
+            VGA[r * VGA_WIDTH + c] =
+                VGA[(r + 1) * VGA_WIDTH + c];
+        }
+    }
 
+    /* Clear the last row. */
+    for (int c = 0; c < VGA_WIDTH; c++) {
+        VGA[(VGA_HEIGHT - 1) * VGA_WIDTH + c] =
+            ((uint16_t)color << 8) | ' ';
+    }
+
+    row = VGA_HEIGHT - 1;
+}
 static void put_char(char c)
 {
     if (c == '\n') {
         col = 0;
         row++;
-    } else if (c == '\b') {
+    }
+    else if (c == '\b') {
         if (col > 0) {
             col--;
+
             VGA[row * VGA_WIDTH + col] =
                 ((uint16_t)color << 8) | ' ';
         }
-    } else {
+    }
+    else {
         VGA[row * VGA_WIDTH + col] =
             ((uint16_t)color << 8) | c;
+
         col++;
     }
 
@@ -40,10 +60,9 @@ static void put_char(char c)
     }
 
     if (row >= VGA_HEIGHT) {
-        row = 0;
+        scroll_screen();
     }
 }
-
 void print(const char *s)
 {
     while (*s) {
@@ -120,8 +139,8 @@ static void prompt(void)
 static void execute(const char *cmd)
 {
     if (equals(cmd, "help")) {
-        print("\nCommands: help, about, clear, halt");
-        print("\ncreate, tasks, fcfs, sjf, priority, rr, reset");
+print("\ncreate, tasks, taskmem, cleanup");
+print("\nfcfs, sjf, priority, rr, reset");
     }
     else if (equals(cmd, "about")) {
         print("\nSysCore Mini OS");
@@ -170,6 +189,12 @@ else if (equals(cmd, "memtest")) {
             __asm__ volatile ("cli; hlt");
         }
     }
+else if (equals(cmd, "taskmem")) {
+    task_memory_list();
+}
+else if (equals(cmd, "cleanup")) {
+    task_cleanup_memory();
+}
     else {
         print("\nUnknown command. Type help.");
     }

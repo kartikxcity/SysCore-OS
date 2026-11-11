@@ -1,5 +1,6 @@
 
 #include "task.h"
+#include "memory.h"
 
 extern void print(const char *s);
 
@@ -70,6 +71,12 @@ int task_create_priority(const char *name, int burst_time, int priority)
         burst_time <= 0 || priority <= 0)
         return -1;
 
+    /* Allocate memory before creating the task. */
+    void *task_memory = kmalloc(TASK_MEMORY_SIZE);
+
+    if (task_memory == NULL)
+        return -1;
+
     Task *t = &tasks[task_count];
 
     t->id = next_id++;
@@ -77,14 +84,18 @@ int task_create_priority(const char *name, int burst_time, int priority)
     t->state = TASK_READY;
     t->burst_time = burst_time;
     t->priority = priority;
+
     t->completion_time = 0;
     t->waiting_time = 0;
     t->turnaround_time = 0;
 
+    t->memory = task_memory;
+    t->memory_size = TASK_MEMORY_SIZE;
+
     task_count++;
+
     return t->id;
 }
-
 int task_create(const char *name, int burst_time)
 {
     return task_create_priority(name, burst_time, 1);
@@ -116,7 +127,54 @@ void task_list(void)
 
     print("\n");
 }
+void task_memory_list(void)
+{
+    if (task_count == 0) {
+        print("\nNo tasks available.");
+        return;
+    }
 
+    print("\nTASK MEMORY USAGE");
+    print("\nID   NAME           MEMORY");
+
+    for (int i = 0; i < task_count; i++) {
+        Task *t = &tasks[i];
+
+        print("\n");
+        print_number(t->id);
+        print("    ");
+        print(t->name);
+        print("           ");
+
+        print_number((int)t->memory_size);
+        print(" bytes");
+    }
+
+    print("\n");
+}
+
+void task_cleanup_memory(void)
+{
+    int released = 0;
+
+    for (int i = 0; i < task_count; i++) {
+        Task *t = &tasks[i];
+
+        if (t->memory != NULL) {
+            kfree(t->memory);
+
+            t->memory = NULL;
+            t->memory_size = 0;
+
+            released++;
+        }
+    }
+
+    print("\nTask memory cleanup completed.");
+    print("\nAllocations released: ");
+    print_number(released);
+    print("\n");
+}
 static void run_order(const char *title, int order[])
 {
     int elapsed = 0;
