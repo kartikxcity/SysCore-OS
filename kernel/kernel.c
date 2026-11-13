@@ -4,6 +4,7 @@
 #include "task.h"
 #include "interrupt.h"
 #include "memory.h"
+#include "resource.h"
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
@@ -119,6 +120,7 @@ static int equals(const char *a, const char *b)
     while (*a && *b) {
         if (*a != *b)
             return 0;
+
         a++;
         b++;
     }
@@ -126,6 +128,81 @@ static int equals(const char *a, const char *b)
     return *a == *b;
 }
 
+static int parse_number(const char **p, int *value)
+{
+    int n = 0;
+    int found = 0;
+
+    while (**p >= '0' && **p <= '9') {
+        found = 1;
+
+        if (n > 1000000)
+            return 0;
+
+        n = n * 10 + (**p - '0');
+        (*p)++;
+    }
+
+    if (!found)
+        return 0;
+
+    *value = n;
+    return 1;
+}
+
+static int parse_arguments(
+    const char *cmd,
+    const char *keyword,
+    int *first,
+    int *second,
+    int needs_second)
+{
+    while (*keyword && *cmd == *keyword) {
+        cmd++;
+        keyword++;
+    }
+
+    if (*keyword != '\0' || *cmd != ' ')
+        return 0;
+
+    while (*cmd == ' ')
+        cmd++;
+
+    if (!parse_number(&cmd, first))
+        return 0;
+
+    while (*cmd == ' ')
+        cmd++;
+
+    if (needs_second) {
+        if (!parse_number(&cmd, second))
+            return 0;
+
+        while (*cmd == ' ')
+            cmd++;
+    }
+
+    return *cmd == '\0';
+}static void print_number(size_t n)
+{
+    char buffer[12];
+    int i = 0;
+
+    if (n == 0) {
+        print("0");
+        return;
+    }
+
+    while (n > 0 && i < 11) {
+        buffer[i++] = '0' + (n % 10);
+        n /= 10;
+    }
+
+    while (i > 0) {
+        char c[2] = { buffer[--i], '\0' };
+        print(c);
+    }
+}
 static char command[80];
 static int command_pos = 0;
 
@@ -138,9 +215,12 @@ static void prompt(void)
 
 static void execute(const char *cmd)
 {
+int arg1 = 0;
+int arg2 = 0;
     if (equals(cmd, "help")) {
 print("\ncreate, tasks, taskmem, cleanup");
 print("\nfcfs, sjf, priority, rr, reset");
+print("\nresources, allocate, release");
     }
     else if (equals(cmd, "about")) {
         print("\nSysCore Mini OS");
@@ -183,6 +263,27 @@ print("\nfcfs, sjf, priority, rr, reset");
 else if (equals(cmd, "memtest")) {
     memory_test();
 }
+else if (equals(cmd, "resources")) {
+    resource_list();
+}
+else if (parse_arguments(cmd, "allocate",
+                         &arg1, &arg2, 1)) {
+    int id = resource_allocate(arg1, (size_t)arg2);
+
+    if (id > 0) {
+        print("\nResource allocated. ID: ");
+        print_number((size_t)id);
+    } else {
+        print("\nResource allocation failed.");
+    }
+}
+else if (parse_arguments(cmd, "release",
+                         &arg1, &arg2, 0)) {
+    if (resource_release(arg1))
+        print("\nResource released successfully.");
+    else
+        print("\nInvalid resource ID.");
+}
     else if (equals(cmd, "halt")) {
         print("\nSysCore halted.");
         for (;;) {
@@ -212,6 +313,7 @@ void kernel_main(void)
     task_init();
   /*  interrupts_init();*/
     memory_init();
+    resource_init();
     prompt();
 
     while (1) {

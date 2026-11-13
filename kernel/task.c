@@ -58,7 +58,15 @@ static void print_state(TaskState state)
     else
         print("TERMINATED");
 }
+int task_exists(int task_id)
+{
+    for (int i = 0; i < task_count; i++) {
+        if (tasks[i].id == task_id)
+            return 1;
+    }
 
+    return 0;
+}
 void task_init(void)
 {
     task_count = 0;

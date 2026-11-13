@@ -42,5 +42,5 @@ void task_run_sjf(void);
 void task_run_priority(void);
 void task_run_rr(void);
 void task_reset(void);
-
+int task_exists(int task_id);
 #endif
