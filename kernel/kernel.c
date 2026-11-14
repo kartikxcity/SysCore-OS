@@ -5,6 +5,7 @@
 #include "interrupt.h"
 #include "memory.h"
 #include "resource.h"
+#include "serial.h"
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
@@ -229,13 +230,21 @@ print("\nresources, allocate, release");
     else if (equals(cmd, "clear")) {
         clear_screen();
     }
-    else if (equals(cmd, "create")) {
-        int id = task_create("Task", 3);
-        if (id > 0)
-            print("\nTask created successfully. ID: ");
-        else
-            print("\nTask creation failed.");
+else if (equals(cmd, "create")) {
+    int id = task_create("Task", 3);
+
+    if (id > 0) {
+        print("\nTask created successfully. ID: ");
+        print_number(id);
+
+        serial_print("PROCESS:CREATED:ID=");
+        serial_print_number(id);
+        serial_print(":NAME=Task:BURST=3:PRIORITY=1\n");
     }
+    else {
+        print("\nTask creation failed.");
+    }
+}
     else if (equals(cmd, "tasks")) {
         task_list();
     }
@@ -304,6 +313,9 @@ else if (equals(cmd, "cleanup")) {
 void kernel_main(void)
 {
     clear_screen();
+
+    serial_init();
+    serial_print("SYSCORE:BOOT:SUCCESS\n");
 
     print("==============================");
     print("\n     SYSCORE MINI OS");
